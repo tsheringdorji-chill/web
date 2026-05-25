@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>NEBULA TRAVEL | 3D Interactive Agency</title>
+  <!-- Google Fonts: Space Grotesk -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Three.js Core -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+      }
+    }
+  </script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: #05070f;
+      color: #f0f3fc;
+      overflow-x: hidden;
+    }
+
+    /* 3D Canvas Background (transparent layered effect) */
+    #three-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      display: block;
+      background: radial-gradient(circle at 20% 30%, #03061a, #000000);
+    }
+
+    /* main content - fully transparent glass layer over 3D */
+    .content-wrapper {
+      position: relative;
+      z-index: 10;
+      backdrop-filter: blur(2px);
+    }
+
+    /* ultra-transparent glassmorphism */
+    .glass-morph {
+      background: rgba(10, 20, 35, 0.28);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(80, 200, 255, 0.25);
+      border-radius: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255,255,255,0.05);
+    }
+
+    .glass-card {
+      background: rgba(5, 15, 28, 0.35);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(0, 210, 255, 0.35);
+      border-radius: 2rem;
+    }
+
+    .container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* header */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      padding: 1rem 0;
+      background: rgba(3, 5, 15, 0.45);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(0, 230, 255, 0.3);
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .logo {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(125deg, #eef9ff, #6bc8ff, #c27eff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+    }
+
+    .logo i {
+      color: #2bd6ff;
+      margin-right: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      font-weight: 500;
+      color: #f0f6ff;
+      transition: 0.25s;
+      position: relative;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 0;
+      width: 0%;
+      height: 2px;
+      background: linear-gradient(90deg, #2bd6ff, #b87eff);
+      transition: 0.3s;
+    }
+
+    .nav-links a:hover::after, .nav-links a.active::after {
+      width: 100%;
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(43, 214, 255, 0.7);
+      padding: 8px 24px;
+      border-radius: 60px;
+      font-weight: 500;
+      color: #d4f0ff;
+      transition: 0.2s;
+    }
+
+    .btn-outline:hover {
+      background: rgba(43, 214, 255, 0.2);
+      box-shadow: 0 0 12px rgba(43,214,255,0.4);
+    }
+
+    /* hero */
+    .hero {
+      padding: 70px 0 60px;
+    }
+
+    .hero-grid {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 48px;
+    }
+
+    .hero-text h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ffffff, #82d4ff, #c27eff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      line-height: 1.2;
+      margin-bottom: 24px;
+    }
+
+    .hero-text p {
+      font-size: 1.2rem;
+      color: #cddfff;
+      margin-bottom: 32px;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+    }
+
+    .stat span {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(145deg, #c0e0ff, #79d0ff);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    /* 3D image container - interactive */
+    .three-showcase {
+      flex: 1;
+      min-height: 400px;
+      position: relative;
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: 0 25px 45px -12px rgba(0,0,0,0.5);
+    }
+
+    #threeImageContainer {
+      width: 100%;
+      height: 400px;
+      border-radius: 32px;
+      cursor: grab;
+    }
+
+    /* search panel */
+    .search-section {
+      margin-top: -20px;
+      margin-bottom: 80px;
+    }
+
+    .booking-card {
+      padding: 32px 40px;
+      background: rgba(8, 18, 32, 0.45);
+      backdrop-filter: blur(16px);
+      border-radius: 48px;
+      border: 1px solid rgba(0, 210, 255, 0.4);
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .form-group label {
+      font-size: 0.7rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #9fcbff;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 12px 18px;
+      border-radius: 60px;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(80, 180, 255, 0.6);
+      color: white;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .form-group input:focus {
+      border-color: #2bd6ff;
+      box-shadow: 0 0 12px rgba(43,214,255,0.3);
+    }
+
+    .btn-primary-glow {
+      background: linear-gradient(95deg, #0f2b44, #0b1a32);
+      border: 1px solid #2bd6ff;
+      padding: 12px 32px;
+      border-radius: 60px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-primary-glow:hover {
+      background: linear-gradient(95deg, #1b456b, #0f2440);
+      box-shadow: 0 0 16px rgba(43,214,255,0.6);
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2.4rem;
+      font-weight: 600;
+      background: linear-gradient(120deg, #fff, #8acdff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .cards-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 28px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+
+    .dest-card {
+      background: rgba(12, 22, 40, 0.5);
+      backdrop-filter: blur(12px);
+      border-radius: 28px;
+      overflow: hidden;
+      width: 270px;
+      border: 1px solid rgba(0, 210, 255, 0.35);
+      transition: 0.3s;
+    }
+
+    .dest-card:hover {
+      transform: translateY(-10px);
+      border-color: #2bd6ff;
+      box-shadow: 0 20px 30px -10px rgba(0,200,255,0.2);
+    }
+
+    .card-img {
+      height: 180px;
+      background-size: cover;
+    }
+
+    .dest-card h3 {
+      margin: 18px 20px 6px;
+    }
+
+    .price-badge {
+      display: inline-block;
+      background: rgba(0, 30, 50, 0.7);
+      padding: 5px 16px;
+      border-radius: 40px;
+      color: #7de2ff;
+      margin: 8px 20px 20px;
+      font-weight: 600;
+    }
+
+    .package-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: center;
+      margin: 40px 0;
+    }
+
+    .package-item {
+      background: rgba(8, 18, 32, 0.5);
+      backdrop-filter: blur(12px);
+      border-radius: 40px;
+      padding: 32px 20px;
+      text-align: center;
+      flex: 1;
+      min-width: 210px;
+      border: 1px solid rgba(0,200,255,0.3);
+    }
+
+    .package-item i {
+      font-size: 2.5rem;
+      color: #2bd6ff;
+    }
+
+    .package-item .price {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #b1e6ff;
+      margin: 12px 0;
+    }
+
+    .testimonial {
+      margin: 40px 0;
+    }
+
+    .quote {
+      background: rgba(8, 18, 32, 0.5);
+      backdrop-filter: blur(16px);
+      max-width: 750px;
+      margin: auto;
+      padding: 40px 28px;
+      border-radius: 56px;
+      text-align: center;
+      border: 1px solid rgba(0, 210, 255, 0.4);
+    }
+
+    footer {
+      background: rgba(1, 3, 10, 0.6);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(0,200,255,0.2);
+      padding: 48px 0 30px;
+      margin-top: 60px;
+    }
+
+    .footer-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 40px;
+    }
+
+    .social-icons i {
+      font-size: 1.5rem;
+      margin-right: 20px;
+      color: #9bcaff;
+      transition: 0.2s;
+    }
+
+    .social-icons i:hover {
+      color: #2bd6ff;
+      text-shadow: 0 0 8px cyan;
+    }
+
+    .toast-msg {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: rgba(0, 20, 45, 0.9);
+      backdrop-filter: blur(20px);
+      border-left: 4px solid #2bd6ff;
+      padding: 12px 26px;
+      border-radius: 60px;
+      z-index: 1000;
+      opacity: 0;
+      transition: 0.2s;
+      pointer-events: none;
+    }
+
+    .toast-msg.show {
+      opacity: 1;
+    }
+
+    @media (max-width: 880px) {
+      .hero-grid { flex-direction: column; }
+      .three-showcase { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="three-canvas"></canvas>
+
+<div class="content-wrapper">
+  <header>
+    <div class="container">
+      <div class="navbar">
+        <div class="logo"><i class="fas fa-globe"></i> NEBULA TRAVEL</div>
+        <ul class="nav-links">
+          <li><a href="#" class="active">Cosmos</a></li>
+          <li><a href="#">Portals</a></li>
+          <li><a href="#">Odyssey</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+        <div><a href="#" class="btn-outline"><i class="fas fa-user-astronaut"></i> Agent Nexus</a></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="container hero-grid">
+        <div class="hero-text">
+          <h1>Beyond the veil.<br>3D cosmic journeys.</h1>
+          <p>Hyper-personalized travel itineraries with transparent pricing & immersive previews. Your future begins here.</p>
+          <div class="hero-stats">
+            <div class="stat"><span>300+</span><br>Star systems</div>
+            <div class="stat"><span>∞</span><br>Experiences</div>
+            <div class="stat"><span>24/7</span><br>Quantum support</div>
+          </div>
+        </div>
+        <div class="three-showcase">
+          <div id="threeImageContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container search-section">
+      <div class="booking-card">
+        <h3 style="margin-bottom: 20px;"><i class="fas fa-crystal-ball"></i> Neural travel request</h3>
+        <div class="form-row">
+          <div class="form-group"><label>Destination</label><input type="text" id="destInput" placeholder="Europa, Andromeda, Santorini" value="Orion Nebula"></div>
+          <div class="form-group"><label>Departure</label><input type="date" id="dateStart" value="2026-10-10"></div>
+          <div class="form-group"><label>Return</label><input type="date" id="dateEnd" value="2026-10-18"></div>
+          <div class="form-group"><label>Travelers</label><select id="travelCount"><option>1 Traveler</option><option selected>2 Travelers</option><option>4 Crew</option></select></div>
+          <div class="form-group"><button id="searchGlowBtn" class="btn-primary-glow"><i class="fas fa-satellite"></i> Signal agent</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="section-title">✨ Dimensional hotspots</div>
+      <div class="cards-grid" id="destCardsGrid"></div>
+    </div>
+
+    <div class="container">
+      <div class="package-flex">
+        <div class="package-item"><i class="fas fa-moon"></i><h4>Lunar Sanctuary</h4><div class="price">$1,290</div><p>Zero-g + crater views</p></div>
+        <div class="package-item"><i class="fas fa-water"></i><h4>Europa Deep</h4><div class="price">$2,190</div><p>Subterranean oceans</p></div>
+        <div class="package-item"><i class="fas fa-meteor"></i><h4>Aurora Arc</h4><div class="price">$1,890</div><p>Glass domes + ice</p></div>
+        <div class="package-item"><i class="fas fa-dragon"></i><h4>Nebula Drift</h4><div class="price">$2,490</div><p>Astral photography</p></div>
+      </div>
+    </div>
+
+    <div class="testimonial">
+      <div class="container">
+        <div class="quote"><i class="fas fa-quote-left"></i><p>"The 3D preview was surreal! Nebula Travel made our intergalactic honeymoon seamless — fully transparent pricing."</p><strong>— Lyra & Cassian</strong><br>⭐⭐⭐⭐⭐</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col"><h4>NEBULA</h4><p>Transparent agent network • 3D immersive previews</p></div>
+        <div class="footer-col"><h4>Expeditions</h4><p>Cosmic shores • Stellar hikes • Zero-G lounges</p></div>
+        <div class="footer-col"><h4>Connect</h4><p>hello@nebula.travel<br>+1 (888) 420-STAR</p></div>
+        <div class="footer-col"><div class="social-icons"><i class="fab fa-twitter"></i><i class="fab fa-instagram"></i><i class="fab fa-discord"></i></div></div>
+      </div>
+      <div class="copyright" style="text-align:center; margin-top:30px;">© 2025 Nebula Travel — infinite horizons, zero opacity walls.</div>
+    </div>
+  </footer>
+  <div id="globalToast" class="toast-msg">✨ Agent signal sent — transparent quote incoming.</div>
+</div>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'https://unpkg.com/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+
+  // 3D rotating image cube (transparent background with 6 rotating travel images)
+  const container = document.getElementById('threeImageContainer');
+  const scene = new THREE.Scene();
+  scene.background = null; // fully transparent
+  const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.set(0, 0, 3.8);
+  
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setClearColor(0x000000, 0); // transparent
+  container.appendChild(renderer.domElement);
+  
+  // Orbit controls for interactive 3D rotation (nice UX)
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 1.5;
+  controls.enableZoom = true;
+  controls.enablePan = false;
+  controls.zoomSpeed = 0.8;
+  
+  // Load texture images (premium travel destinations) with cross-origin friendly
+  const imageUrls = [
+    'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg',
+    'https://threejs.org/examples/textures/planets/venus_surface.jpg',
+    'https://threejs.org/examples/textures/planets/mars_clouds_1024.png',
+    'https://threejs.org/examples/textures/uv_grid_opengl.jpg'
+  ];
+  // using high-res 3D cube map effect: we'll create a rotating group of image planes in a cube or use a sphere? Better: a floating 3D rotating cube with images & also a particle ring
+  
+  // Create a group for rotating objects
+  const mainGroup = new THREE.Group();
+  scene.add(mainGroup);
+  
+  // Add a glowing torus ring for futuristic effect (semi-transparent)
+  const ringGeo = new THREE.TorusGeometry(1.5, 0.05, 64, 200);
+  const ringMat = new THREE.MeshStandardMaterial({ color: 0x2bd6ff, emissive: 0x0a3355, transparent: true, opacity: 0.55 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  mainGroup.add(ring);
+  
+  const ring2 = new THREE.Mesh(ringGeo, ringMat);
+  ring2.rotation.z = Math.PI / 3;
+  ring2.rotation.x = 0.8;
+  ring2.scale.set(1.2, 1.2, 0.6);
+  mainGroup.add(ring2);
+  
+  // Create a floating 3D image cube (with travel images)
+  const imagesForCube = [
+    'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&auto=format', // mountain
+    'https://images.unsplash.com/photo-1533105079780-92b9be482077?w=400&auto=format', // beach
+    'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&auto=format', // forest
+    'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&auto=format', // trek
+    'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=400&auto=format', // desert
+    'https://images.unsplash.com/photo-1508672019048-805c876b67e2?w=400&auto=format'  // city
+  ];
+  
+  const cubeMaterials = imagesForCube.map(imgUrl => {
+    const texture = new THREE.TextureLoader().load(imgUrl);
+    return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.2, metalness: 0.1 });
+  });
+  const cubeGeo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+  const imageCube = new THREE.Mesh(cubeGeo, cubeMaterials);
+  imageCube.castShadow = true;
+  imageCube.receiveShadow = false;
+  mainGroup.add(imageCube);
+  
+  // Floating particles (stars) inside 3D space
+  const particleCount = 800;
+  const particlesGeometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount; i++) {
+    positions[i*3] = (Math.random() - 0.5) * 20;
+    positions[i*3+1] = (Math.random() - 0.5) * 15;
+    positions[i*3+2] = (Math.random() - 0.5) * 12 - 4;
+  }
+  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const particleMat = new THREE.PointsMaterial({ color: 0x88bbff, size: 0.05, transparent: true, opacity: 0.6 });
+  const particles = new THREE.Points(particlesGeometry, particleMat);
+  mainGroup.add(particles);
+  
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0x404060);
+  scene.add(ambientLight);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(2, 3, 4);
+  scene.add(dirLight);
+  const backLight = new THREE.PointLight(0x2266ff, 0.5);
+  backLight.position.set(-1, 1, -2);
+  scene.add(backLight);
+  const fillLight = new THREE.PointLight(0xffaa88, 0.4);
+  fillLight.position.set(1, 2, 2);
+  scene.add(fillLight);
+  
+  // small floating spheres for additional 3D depth
+  const smallSpheres = [];
+  for (let i = 0; i < 40; i++) {
+    const sphereGeo = new THREE.SphereGeometry(0.05, 6, 6);
+    const sphereMat = new THREE.MeshStandardMaterial({ color: 0x77ccff, emissive: 0x2266aa });
+    const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+    sphere.position.set((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 4 - 1);
+    mainGroup.add(sphere);
+    smallSpheres.push(sphere);
+  }
+  
+  let time = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    time += 0.008;
+    // Rotations
+    imageCube.rotation.y = time * 0.8;
+    imageCube.rotation.x = Math.sin(time * 0.4) * 0.2;
+    ring.rotation.z = time * 0.3;
+    ring2.rotation.y = time * 0.2;
+    particles.rotation.y = time * 0.05;
+    smallSpheres.forEach((s, idx) => {
+      s.position.x += Math.sin(time + idx) * 0.002;
+      s.position.y += Math.cos(time * 0.7 + idx) * 0.002;
+    });
+    controls.update(); // updates autoRotate if enabled
+    renderer.render(scene, camera);
+  }
+  animate();
+  
+  // resize handler for 3D container
+  window.addEventListener('resize', () => {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  });
+  
+  // small fallback
+  setTimeout(() => {
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  }, 100);
+</script>
+
+<script type="text/javascript">
+  // Destination Data (UI)
+  const travelSpots = [
+    { name: "Titan Outpost", meta: "Saturn's moon • 8 days", price: "from $2,190", img: "url('https://images.unsplash.com/photo-1614728894743-834f1e1c6b6e?w=500&auto=format')" },
+    { name: "Nebula Bay", meta: "Cosmic beach • 6 days", price: "from $1,690", img: "url('https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=500&auto=format')" },
+    { name: "Aurora Glass", meta: "Arctic lights • 5 days", price: "from $1,490", img: "url('https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?w=500&auto=format')" },
+    { name: "Andromeda Vista", meta: "Observatory • 7 days", price: "from $1,890", img: "url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=500&auto=format')" }
+  ];
+  
+  function buildCards() {
+    const grid = document.getElementById('destCardsGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    travelSpots.forEach(spot => {
+      const card = document.createElement('div');
+      card.className = 'dest-card';
+      card.innerHTML = `
+        <div class="card-img" style="background-image: ${spot.img}; background-size: cover; background-position: center;"></div>
+        <h3>${spot.name}</h3>
+        <p><i class="fas fa-clock"></i> ${spot.meta}</p>
+        <div class="price-badge">${spot.price}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+  
+  function showToast(msg) {
+    const toast = document.getElementById('globalToast');
+    toast.textContent = msg || '✨ Agent signal sent — transparent quote incoming.';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+  
+  function handleBooking() {
+    const dest = document.getElementById('destInput')?.value.trim() || 'unknown';
+    const start = document.getElementById('dateStart')?.value;
+    const end = document.getElementById('dateEnd')?.value;
+    if (!start || !end) { showToast('⚠️ Please select departure & return dates.'); return; }
+    if (new Date(start) > new Date(end)) { showToast('⏳ Chrono-error: Return must be after departure.'); return; }
+    showToast(`🚀 Agent notified for ${dest}. Transparent pricing & 3D preview ready.`);
+  }
+  
+  function attachEvents() {
+    const btn = document.getElementById('searchGlowBtn');
+    if (btn) btn.addEventListener('click', handleBooking);
+    const inputs = ['destInput', 'dateStart', 'dateEnd', 'travelCount'];
+    inputs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleBooking(); });
+    });
+    document.querySelectorAll('.dest-card').forEach(card => {
+      card.addEventListener('click', () => showToast('🌌 Speak with an agent — exclusive transparent deal available.'));
+    });
+  }
+  
+  function initUI() {
+    buildCards();
+    attachEvents();
+    const today = new Date();
+    const next = new Date(today); next.setDate(today.getDate() + 7);
+    if (!document.getElementById('dateStart').value) document.getElementById('dateStart').value = today.toISOString().split('T')[0];
+    if (!document.getElementById('dateEnd').value) document.getElementById('dateEnd').value = next.toISOString().split('T')[0];
+  }
+  
+  window.addEventListener('DOMContentLoaded', initUI);
+</script>
+</body>
+</html>
